@@ -1,0 +1,19 @@
+# Environment variables
+.env*.local
+
+# Next.js
+.next/
+out/
+
+# Node
+node_modules/
+*.tsbuildinfo
+
+# OS
+.DS_Store
+
+# Vercel
+.vercel/
+
+# Misc
+*.log
