@@ -1,7 +1,5 @@
 "use client"
 
-import { SizeGuide } from "./SizeGuide"
-
 const SIZES = ["S", "M", "L", "XL", "2XL"] as const
 export type PDPSize = (typeof SIZES)[number]
 
@@ -13,14 +11,14 @@ interface Props {
 export function SizeSelector({ selectedSize, onSizeChange }: Props) {
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 gap-3">
         <p className="text-sm font-semibold">
           Size
           {!selectedSize && (
             <span className="text-muted-foreground font-normal ml-1">— select one</span>
           )}
         </p>
-        <SizeGuide />
+        <span className="text-xs text-muted-foreground">Full fit guide below</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {SIZES.map((size) => (

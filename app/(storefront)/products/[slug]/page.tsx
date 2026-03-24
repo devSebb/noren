@@ -8,6 +8,7 @@ import { ProductStory } from "@/components/storefront/pdp/ProductStory"
 import { WhyNoren } from "@/components/storefront/pdp/WhyNoren"
 import { ProductFAQ } from "@/components/storefront/pdp/ProductFAQ"
 import { RelatedProducts } from "@/components/storefront/pdp/RelatedProducts"
+import { SizeGuide } from "@/components/storefront/pdp/SizeGuide"
 import { ReviewsSection } from "@/components/storefront/ReviewsSection"
 import type { ProductWithDetails } from "@/lib/types/product"
 
@@ -55,6 +56,21 @@ function toProductWithDetails(product: StoreProduct): ProductWithDetails {
   }
 }
 
+function withGarmentDyeDescription(description?: string | null, fallback?: string | null) {
+  const base = description ?? fallback ?? ""
+  const phrase = "Comfort Colors garment-dyed tee"
+
+  if (!base) {
+    return `Premium ${phrase} with original NOREN artwork and a relaxed everyday fit.`
+  }
+
+  if (base.toLowerCase().includes(phrase.toLowerCase())) {
+    return base
+  }
+
+  return `${base} Printed on a ${phrase} for a soft, relaxed fit.`
+}
+
 export async function generateStaticParams() {
   const products = await getProducts()
   return products.map((product) => ({ slug: product.slug }))
@@ -69,7 +85,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     return await buildProductMetadata({
       title: product.title,
-      description: product.description ?? product.subtitle,
+      description: withGarmentDyeDescription(product.description, product.subtitle),
       slug: product.slug,
       image: product.image,
       priceCents: Math.round(product.price * 100),
@@ -92,10 +108,15 @@ export default async function ProductDetailPage({ params }: Props) {
     .slice(0, 3)
     .map(toProductWithDetails)
 
+  const seoDescription = withGarmentDyeDescription(
+    productDetails.description,
+    productDetails.subtitle,
+  )
+
   const structuredData = [
     productJsonLd({
       name: productDetails.title,
-      description: productDetails.description ?? undefined,
+      description: seoDescription,
       images: productDetails.images.map((image) => image.url),
       slug: productDetails.slug,
       priceCents: productDetails.priceCents,
@@ -130,6 +151,7 @@ export default async function ProductDetailPage({ params }: Props) {
       )}
 
       <WhyNoren />
+      <SizeGuide garmentType="1717" />
 
       <div id="reviews">
         <ReviewsSection />
