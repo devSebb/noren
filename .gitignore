@@ -17,3 +17,8 @@ node_modules/
 
 # Misc
 *.log
+
+# Local scripts and design assets (not for deployment)
+scripts/
+designs/
+data/
