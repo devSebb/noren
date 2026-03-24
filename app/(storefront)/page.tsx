@@ -9,12 +9,16 @@ import { buildMetadata } from "@/lib/utils/seo"
 import { organizationJsonLd, websiteJsonLd } from "@/lib/utils/json-ld"
 
 export async function generateMetadata(): Promise<Metadata> {
-  return buildMetadata({
-    title: "NOREN 暖簾 | Japanese-Inspired Apparel",
-    description:
-      "Wear the Culture. Premium garment-dyed t-shirts featuring hand-illustrated Japanese art where mythology, food culture, and streetwear collide.",
-    path: "/",
-  })
+  try {
+    return await buildMetadata({
+      title: "NOREN 暖簾 | Japanese-Inspired Apparel",
+      description:
+        "Wear the Culture. Premium garment-dyed t-shirts featuring hand-illustrated Japanese art where mythology, food culture, and streetwear collide.",
+      path: "/",
+    })
+  } catch {
+    return {}
+  }
 }
 
 export default function HomePage() {

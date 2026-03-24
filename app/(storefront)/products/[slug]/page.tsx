@@ -20,13 +20,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const product = products.find((p) => p.slug === slug)
   if (!product) return {}
-  return buildProductMetadata({
-    title: product.name,
-    description: product.description,
-    slug: product.slug,
-    image: product.image,
-    priceCents: Math.round(product.price * 100),
-  })
+  try {
+    return await buildProductMetadata({
+      title: product.name,
+      description: product.description,
+      slug: product.slug,
+      image: product.image,
+      priceCents: Math.round(product.price * 100),
+    })
+  } catch {
+    return {}
+  }
 }
 
 export default async function ProductDetailPage({ params }: Props) {
