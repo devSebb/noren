@@ -40,7 +40,7 @@ export default function AdminSettingsPage() {
             {[
               { label: "Store Name", env: "NEXT_PUBLIC_STORE_NAME" },
               { label: "Support Email", env: "SUPPORT_EMAIL" },
-              { label: "Domain", env: "NEXT_PUBLIC_SITE_URL" },
+              { label: "Domain", env: "NEXT_PUBLIC_APP_URL" },
               { label: "Stripe Mode", env: "STRIPE_SECRET_KEY" },
             ].map((item) => (
               <div key={item.env}>
@@ -57,9 +57,9 @@ export default function AdminSettingsPage() {
           <div className="space-y-3 text-sm">
             {[
               { name: "Stripe", key: "STRIPE_SECRET_KEY", status: !!process.env.STRIPE_SECRET_KEY },
-              { name: "Printify", key: "PRINTIFY_API_KEY", status: !!process.env.PRINTIFY_API_KEY },
+              { name: "Printify", key: "PRINTIFY_API_TOKEN", status: !!process.env.PRINTIFY_API_TOKEN },
               { name: "Resend", key: "RESEND_API_KEY", status: !!process.env.RESEND_API_KEY },
-              { name: "Supabase", key: "SUPABASE_URL", status: !!process.env.SUPABASE_URL },
+              { name: "Supabase", key: "NEXT_PUBLIC_SUPABASE_URL", status: !!process.env.NEXT_PUBLIC_SUPABASE_URL },
             ].map((integration) => (
               <div key={integration.name} className="flex items-center justify-between">
                 <span className="font-medium">{integration.name}</span>
