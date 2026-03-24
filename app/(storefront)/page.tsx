@@ -5,6 +5,7 @@ import { ProductSection } from "@/components/storefront/ProductSection"
 import { ReviewsSection } from "@/components/storefront/ReviewsSection"
 import { ValueProps } from "@/components/storefront/ValueProps"
 import { NewsletterSignup } from "@/components/storefront/NewsletterSignup"
+import { getProducts } from "@/lib/data/products-db"
 import { buildMetadata } from "@/lib/utils/seo"
 import { organizationJsonLd, websiteJsonLd } from "@/lib/utils/json-ld"
 
@@ -21,8 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default function HomePage() {
+export default async function HomePage() {
   const jsonLd = [organizationJsonLd(), websiteJsonLd()]
+  const products = await getProducts()
 
   return (
     <>
@@ -35,7 +37,7 @@ export default function HomePage() {
       ))}
       <HeroBanner />
       <MarqueeStrip />
-      <ProductSection />
+      <ProductSection products={products} />
       <ReviewsSection />
       <ValueProps />
       <NewsletterSignup />

@@ -25,7 +25,7 @@ export async function createCheckoutSession({
       product_data: {
         name: item.name,
         description: `${item.size} · ${item.color}`,
-        images: [item.image],
+        images: [item.image.startsWith("/") ? `${baseUrl}${item.image}` : item.image],
         metadata: {
           product_id: String(item.id),
           slug: item.slug,

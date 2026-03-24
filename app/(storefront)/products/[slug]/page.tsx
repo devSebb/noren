@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
-import { getProductBySlug, getRelatedProducts, getAllProductSlugs } from "@/lib/db/queries/products"
+import { getProductBySlug, getProducts, type StoreProduct } from "@/lib/data/products-db"
 import { buildProductMetadata } from "@/lib/utils/seo"
 import { productJsonLd, breadcrumbJsonLd } from "@/lib/utils/json-ld"
 import { ProductHero } from "@/components/storefront/pdp/ProductHero"
@@ -9,32 +9,70 @@ import { WhyNoren } from "@/components/storefront/pdp/WhyNoren"
 import { ProductFAQ } from "@/components/storefront/pdp/ProductFAQ"
 import { RelatedProducts } from "@/components/storefront/pdp/RelatedProducts"
 import { ReviewsSection } from "@/components/storefront/ReviewsSection"
+import type { ProductWithDetails } from "@/lib/types/product"
 
 interface Props {
   params: Promise<{ slug: string }>
 }
 
-export async function generateStaticParams() {
-  try {
-    const slugs = await getAllProductSlugs()
-    return slugs.map((slug) => ({ slug }))
-  } catch {
-    return []
+function toProductWithDetails(product: StoreProduct): ProductWithDetails {
+  return {
+    id: product.id,
+    slug: product.slug,
+    title: product.title,
+    subtitle: product.subtitle || null,
+    description: product.description || null,
+    priceCents: Math.round(product.price * 100),
+    compareAtPriceCents: Math.round(product.originalPrice * 100) || null,
+    category: product.category,
+    tags: product.tags,
+    badge: product.badge || null,
+    badgeColor: product.badgeColor || null,
+    emoji: product.emoji || null,
+    isFeatured: null,
+    seoTitle: null,
+    seoDescription: null,
+    ogImageUrl: null,
+    variants: product.variants.map((variant) => ({
+      id: variant.id,
+      size: variant.size,
+      color: variant.color,
+      colorHex: variant.colorHex,
+      sku: variant.printifyVariantId,
+      priceCents: Math.round(product.price * 100),
+      stockStatus: null,
+    })),
+    images: [
+      {
+        id: `${product.id}-primary`,
+        url: product.image,
+        altText: product.title,
+        position: 0,
+        isPrimary: true,
+        variantColor: product.color,
+      },
+    ],
   }
+}
+
+export async function generateStaticParams() {
+  const products = await getProducts()
+  return products.map((product) => ({ slug: product.slug }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
+
   try {
     const product = await getProductBySlug(slug)
     if (!product) return {}
-    const primaryImage = product.images.find((img) => img.isPrimary) ?? product.images[0]
+
     return await buildProductMetadata({
-      title: product.seoTitle ?? product.title,
-      description: product.seoDescription ?? product.description ?? "",
+      title: product.title,
+      description: product.description ?? product.subtitle,
       slug: product.slug,
-      image: product.ogImageUrl ?? primaryImage?.url,
-      priceCents: product.priceCents,
+      image: product.image,
+      priceCents: Math.round(product.price * 100),
     })
   } catch {
     return {}
@@ -47,25 +85,28 @@ export default async function ProductDetailPage({ params }: Props) {
   const product = await getProductBySlug(slug)
   if (!product) notFound()
 
-  const related = await getRelatedProducts(product.category, product.slug, 3)
-
-  const primaryImage = product.images.find((img) => img.isPrimary) ?? product.images[0]
+  const productDetails = toProductWithDetails(product)
+  const allProducts = await getProducts()
+  const related = allProducts
+    .filter((item) => item.category === product.category && item.slug !== product.slug)
+    .slice(0, 3)
+    .map(toProductWithDetails)
 
   const structuredData = [
     productJsonLd({
-      name: product.title,
-      description: product.description ?? undefined,
-      images: product.images.map((img) => img.url),
-      slug: product.slug,
-      priceCents: product.priceCents,
-      compareAtPriceCents: product.compareAtPriceCents ?? undefined,
+      name: productDetails.title,
+      description: productDetails.description ?? undefined,
+      images: productDetails.images.map((image) => image.url),
+      slug: productDetails.slug,
+      priceCents: productDetails.priceCents,
+      compareAtPriceCents: productDetails.compareAtPriceCents ?? undefined,
       isAvailable: true,
       withAggregateRating: true,
     }),
     breadcrumbJsonLd([
       { name: "Home", href: "/" },
       { name: "Products", href: "/products" },
-      { name: product.title },
+      { name: productDetails.title },
     ]),
   ]
 
@@ -79,29 +120,23 @@ export default async function ProductDetailPage({ params }: Props) {
         />
       ))}
 
-      {/* Above the fold: image gallery + product info + CTA */}
-      <ProductHero product={product} />
+      <ProductHero product={productDetails} />
 
-      {/* The Story — rich description from DB */}
-      {product.description && (
+      {productDetails.description && (
         <ProductStory
-          description={product.description}
-          subtitle={product.subtitle}
+          description={productDetails.description}
+          subtitle={productDetails.subtitle}
         />
       )}
 
-      {/* Why NOREN — static quality section */}
       <WhyNoren />
 
-      {/* Social proof */}
       <div id="reviews">
         <ReviewsSection />
       </div>
 
-      {/* Related products */}
       <RelatedProducts products={related} />
 
-      {/* FAQ */}
       <ProductFAQ />
     </>
   )

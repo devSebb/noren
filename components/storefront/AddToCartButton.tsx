@@ -3,10 +3,11 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import { useCart } from "@/lib/hooks/use-cart"
-import type { Product, Size } from "@/lib/data/products"
+import type { Size } from "@/lib/data/products"
+import type { StoreProduct } from "@/lib/data/products-db"
 
 interface Props {
-  product: Product
+  product: StoreProduct
   sizes: readonly Size[]
 }
 
@@ -19,7 +20,7 @@ export function AddToCartButton({ product, sizes }: Props) {
     addItem({
       id: String(product.id),
       slug: product.slug,
-      name: product.name,
+      name: product.title,
       price: product.price,
       size,
       color: product.color,
@@ -27,7 +28,7 @@ export function AddToCartButton({ product, sizes }: Props) {
       emoji: product.emoji,
       image: product.image,
     })
-    toast.success(`${product.name} (${size}) added!`, { icon: product.emoji })
+    toast.success(`${product.title} (${size}) added!`, { icon: product.emoji })
     openCart()
   }
 

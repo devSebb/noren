@@ -1,31 +1,43 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import Image from "next/image"
 import { toast } from "sonner"
 import { useCart } from "@/lib/hooks/use-cart"
-import { products, categories, SIZES, type Size } from "@/lib/data/products"
+import { SIZES, type Size } from "@/lib/data/products"
+import type { StoreProduct } from "@/lib/data/products-db"
 import { formatPrice, discountPercent } from "@/lib/utils/format"
 
-export function ProductSection() {
+interface ProductSectionProps {
+  products: StoreProduct[]
+}
+
+export function ProductSection({ products }: ProductSectionProps) {
   const [activeCategory, setActiveCategory] = useState("All Designs")
-  const [hoveredId, setHoveredId] = useState<number | null>(null)
-  const [selectedSizes, setSelectedSizes] = useState<Record<number, Size>>({})
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [selectedSizes, setSelectedSizes] = useState<Record<string, Size>>({})
   const { addItem, openCart } = useCart()
+
+  const categories = useMemo(
+    () => ["All Designs", ...Array.from(new Set(products.map((product) => product.category)))],
+    [products]
+  )
 
   const filtered =
     activeCategory === "All Designs"
       ? products
-      : products.filter((p) => p.category === activeCategory)
+      : products.filter((product) => product.category === activeCategory)
 
-  const handleAddToCart = (productId: number) => {
-    const product = products.find((p) => p.id === productId)
+  const handleAddToCart = (productId: string) => {
+    const product = products.find((item) => item.id === productId)
     if (!product) return
+
     const size = selectedSizes[productId] ?? "M"
+
     addItem({
       id: String(product.id),
       slug: product.slug,
-      name: product.name,
+      name: product.title,
       price: product.price,
       size,
       color: product.color,
@@ -33,11 +45,14 @@ export function ProductSection() {
       emoji: product.emoji,
       image: product.image,
     })
-    toast.success(`${product.name} (${size}) added!`, {
+
+    toast.success(`${product.title} (${size}) added!`, {
       icon: product.emoji,
     })
+
     setHoveredId(null)
     setSelectedSizes({})
+    openCart()
   }
 
   return (
@@ -92,7 +107,7 @@ export function ProductSection() {
               <div className="relative aspect-square overflow-hidden">
                 <Image
                   src={product.image}
-                  alt={product.name}
+                  alt={product.title}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -152,7 +167,7 @@ export function ProductSection() {
                 <p className="text-xs tracking-widest text-muted-foreground uppercase mb-1">
                   {product.subtitle}
                 </p>
-                <h3 className="text-lg font-bold mb-2">{product.name}</h3>
+                <h3 className="text-lg font-bold mb-2">{product.title}</h3>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xl font-bold text-foreground">
                     {formatPrice(product.price)}

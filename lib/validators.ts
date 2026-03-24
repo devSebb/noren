@@ -35,6 +35,11 @@ export type ContactInput = z.infer<typeof contactSchema>
 // CHECKOUT
 // ============================================================
 
+const cartImageSchema = z.string().refine(
+  (value) => value.startsWith("/") || /^https?:\/\//.test(value),
+  "Image must be a URL or root-relative path"
+)
+
 export const cartItemSchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -44,7 +49,7 @@ export const cartItemSchema = z.object({
   color: z.string(),
   colorHex: z.string(),
   emoji: z.string(),
-  image: z.string().url(),
+  image: cartImageSchema,
   quantity: z.number().int().positive(),
 })
 
