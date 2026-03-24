@@ -23,7 +23,7 @@ export function ProductSection() {
     if (!product) return
     const size = selectedSizes[productId] ?? "M"
     addItem({
-      id: product.id,
+      id: String(product.id),
       slug: product.slug,
       name: product.name,
       price: product.price,

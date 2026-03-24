@@ -17,7 +17,7 @@ export function AddToCartButton({ product, sizes }: Props) {
   const handleAdd = () => {
     const size = selectedSize ?? "M"
     addItem({
-      id: product.id,
+      id: String(product.id),
       slug: product.slug,
       name: product.name,
       price: product.price,

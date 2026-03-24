@@ -36,7 +36,7 @@ export type ContactInput = z.infer<typeof contactSchema>
 // ============================================================
 
 export const cartItemSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   slug: z.string(),
   name: z.string(),
   price: z.number().positive(),

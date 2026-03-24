@@ -4,7 +4,7 @@ import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 
 export interface CartItem {
-  id: number
+  id: string
   slug: string
   name: string
   price: number
@@ -20,8 +20,8 @@ interface CartStore {
   items: CartItem[]
   isOpen: boolean
   addItem: (item: Omit<CartItem, "quantity">) => void
-  removeItem: (id: number, size: string) => void
-  updateQuantity: (id: number, size: string, delta: number) => void
+  removeItem: (id: string, size: string) => void
+  updateQuantity: (id: string, size: string, delta: number) => void
   clearCart: () => void
   openCart: () => void
   closeCart: () => void
@@ -77,6 +77,14 @@ export const useCartStore = create<CartStore>()(
     {
       name: "noren-cart",
       storage: createJSONStorage(() => localStorage),
+      version: 2,
+      migrate: (persisted, version) => {
+        // v1 used numeric ids — clear the cart on upgrade
+        if (version < 2) {
+          return { items: [], isOpen: false }
+        }
+        return persisted as CartStore
+      },
     }
   )
 )
