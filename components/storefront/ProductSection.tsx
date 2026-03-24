@@ -73,9 +73,10 @@ export function ProductSection() {
         {/* Product Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((product, index) => (
-            <div
+            <a
               key={product.id}
-              className="group relative bg-card rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-black/50"
+              href={`/products/${product.slug}`}
+              className="group relative bg-card rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-black/50 block"
               style={{ animationDelay: `${index * 100}ms` }}
               onMouseEnter={() => setHoveredId(product.id)}
               onMouseLeave={() => {
@@ -124,9 +125,7 @@ export function ProductSection() {
                         {SIZES.map((size) => (
                           <button
                             key={size}
-                            onClick={() =>
-                              setSelectedSizes((prev) => ({ ...prev, [product.id]: size }))
-                            }
+                            onClick={(e) => { e.preventDefault(); setSelectedSizes((prev) => ({ ...prev, [product.id]: size })) }}
                             className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
                               selectedSizes[product.id] === size
                                 ? "bg-primary text-primary-foreground"
@@ -138,7 +137,7 @@ export function ProductSection() {
                         ))}
                       </div>
                       <button
-                        onClick={() => handleAddToCart(product.id)}
+                        onClick={(e) => { e.preventDefault(); handleAddToCart(product.id) }}
                         className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors"
                       >
                         ADD TO CART — {formatPrice(product.price)}
@@ -176,7 +175,7 @@ export function ProductSection() {
                   ))}
                 </div>
               </div>
-            </div>
+            </a>
           ))}
         </div>
       </div>
