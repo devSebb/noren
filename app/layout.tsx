@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { Analytics } from '@vercel/analytics/next'
 import { Inter, Bricolage_Grotesque } from 'next/font/google'
 import { Providers } from '@/components/layout/Providers'
 import { SmoothScrollProvider } from '@/components/layout/SmoothScrollProvider'
@@ -65,6 +66,7 @@ export default function RootLayout({
         <SmoothScrollProvider>
           <CustomCursor />
           <Providers>{children}</Providers>
+          <Analytics />
         </SmoothScrollProvider>
       </body>
     </html>
