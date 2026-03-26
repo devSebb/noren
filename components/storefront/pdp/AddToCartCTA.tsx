@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { ShoppingBag } from "lucide-react"
 import { useCart } from "@/lib/hooks/use-cart"
 import { formatCents } from "@/lib/utils/format"
-import { ColorSwatch } from "./ColorSwatch"
+import { ColorSelector } from "./ColorSelector"
 import { SizeSelector, type PDPSize } from "./SizeSelector"
 import { FreeShippingProgress } from "./FreeShippingProgress"
 import { TrustBadges } from "./TrustBadges"
@@ -13,40 +13,52 @@ import type { ProductWithDetails } from "@/lib/types/product"
 
 interface Props {
   product: ProductWithDetails
-  primaryImageUrl: string
+  imageUrl: string
+  selectedColor: string
+  selectedColorHex: string
+  onColorChange: (color: string, colorHex: string) => void
 }
 
-export function AddToCartCTA({ product, primaryImageUrl }: Props) {
+export function AddToCartCTA({
+  product,
+  imageUrl,
+  selectedColor,
+  selectedColorHex,
+  onColorChange,
+}: Props) {
   const [selectedSize, setSelectedSize] = useState<PDPSize | null>(null)
   const { addItem, openCart } = useCart()
-
-  const primaryVariant = product.variants[0]
-  const color = primaryVariant?.color ?? ""
-  const colorHex = primaryVariant?.colorHex ?? "#888"
   const price = product.priceCents / 100
 
   const handleAdd = () => {
     const size = selectedSize ?? "M"
+
     addItem({
       id: product.id,
       slug: product.slug,
       name: product.title,
       price,
       size,
-      color,
-      colorHex,
+      color: selectedColor,
+      colorHex: selectedColorHex,
       emoji: product.emoji ?? "👕",
-      image: primaryImageUrl,
+      image: imageUrl,
     })
+
     toast.success(`${product.title} (${size}) added!`, {
       icon: product.emoji ?? "👕",
     })
+
     openCart()
   }
 
   return (
     <div>
-      <ColorSwatch color={color} colorHex={colorHex} />
+      <ColorSelector
+        variants={product.variants}
+        selectedColor={selectedColor}
+        onColorChange={onColorChange}
+      />
       <SizeSelector selectedSize={selectedSize} onSizeChange={setSelectedSize} />
       <FreeShippingProgress />
       <button

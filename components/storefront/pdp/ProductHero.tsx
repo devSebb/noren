@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Star } from "lucide-react"
 import { ImageGallery } from "./ImageGallery"
 import { AddToCartCTA } from "./AddToCartCTA"
@@ -15,8 +15,16 @@ interface Props {
 export function ProductHero({ product }: Props) {
   const ctaRef = useRef<HTMLDivElement>(null)
 
+  const primaryVariant = product.variants[0]
+  const [selectedColor, setSelectedColor] = useState(primaryVariant?.color ?? "")
+  const [selectedColorHex, setSelectedColorHex] = useState(primaryVariant?.colorHex ?? "#888888")
+
   const primaryImage = product.images.find((img) => img.isPrimary) ?? product.images[0]
-  const primaryImageUrl = primaryImage?.url ?? ""
+
+  const selectedImageUrl = useMemo(() => {
+    const colorImage = product.images.find((img) => img.variantColor === selectedColor)
+    return colorImage?.url ?? primaryImage?.url ?? ""
+  }, [primaryImage?.url, product.images, selectedColor])
 
   const salePrice = formatCents(product.priceCents)
   const comparePrice = product.compareAtPriceCents
@@ -25,6 +33,11 @@ export function ProductHero({ product }: Props) {
   const savings = product.compareAtPriceCents
     ? discountPercent(product.compareAtPriceCents / 100, product.priceCents / 100)
     : null
+
+  const handleColorChange = (color: string, colorHex: string) => {
+    setSelectedColor(color)
+    setSelectedColorHex(colorHex)
+  }
 
   return (
     <>
@@ -36,6 +49,7 @@ export function ProductHero({ product }: Props) {
             productName={product.title}
             badge={product.badge}
             badgeColor={product.badgeColor}
+            selectedColor={selectedColor}
           />
 
           {/* Right: Product info */}
@@ -93,7 +107,13 @@ export function ProductHero({ product }: Props) {
 
             {/* Add to Cart (size, color, progress, button, trust) */}
             <div ref={ctaRef}>
-              <AddToCartCTA product={product} primaryImageUrl={primaryImageUrl} />
+              <AddToCartCTA
+                product={product}
+                imageUrl={selectedImageUrl}
+                selectedColor={selectedColor}
+                selectedColorHex={selectedColorHex}
+                onColorChange={handleColorChange}
+              />
             </div>
 
             {/* Tags */}
@@ -116,8 +136,10 @@ export function ProductHero({ product }: Props) {
       {/* Mobile sticky CTA */}
       <StickyCartBar
         product={product}
-        primaryImageUrl={primaryImageUrl}
+        imageUrl={selectedImageUrl}
         ctaRef={ctaRef}
+        selectedColor={selectedColor}
+        selectedColorHex={selectedColorHex}
       />
     </>
   )

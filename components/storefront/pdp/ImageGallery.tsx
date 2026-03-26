@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { useEffect, useMemo, useState } from "react"
 import type { ProductImage } from "@/lib/types/product"
 
 interface Props {
@@ -8,19 +9,41 @@ interface Props {
   productName: string
   badge: string | null
   badgeColor: string | null
+  selectedColor?: string
 }
 
-export function ImageGallery({ images, productName, badge, badgeColor }: Props) {
-  const primary = images.find((img) => img.isPrimary) ?? images[0]
+export function ImageGallery({ images, productName, badge, badgeColor, selectedColor }: Props) {
+  const fallbackImage = useMemo(
+    () => images.find((img) => img.isPrimary) ?? images[0] ?? null,
+    [images]
+  )
 
-  if (!primary) return null
+  const selectedColorImage = useMemo(() => {
+    if (!selectedColor) {
+      return null
+    }
+
+    return images.find((img) => img.variantColor === selectedColor) ?? null
+  }, [images, selectedColor])
+
+  const [activeImageId, setActiveImageId] = useState<string | null>(
+    selectedColorImage?.id ?? fallbackImage?.id ?? null
+  )
+
+  useEffect(() => {
+    setActiveImageId(selectedColorImage?.id ?? fallbackImage?.id ?? null)
+  }, [fallbackImage?.id, selectedColorImage?.id])
+
+  const activeImage = images.find((img) => img.id === activeImageId) ?? fallbackImage
+
+  if (!activeImage) return null
 
   return (
     <div className="sticky top-24">
       <div className="relative aspect-square rounded-2xl overflow-hidden bg-card">
         <Image
-          src={primary.url}
-          alt={primary.altText ?? productName}
+          src={activeImage.url}
+          alt={activeImage.altText ?? productName}
           fill
           className="object-cover"
           priority
@@ -34,25 +57,35 @@ export function ImageGallery({ images, productName, badge, badgeColor }: Props) 
           </span>
         )}
       </div>
-      {/* Thumbnail strip — renders only when multiple images exist */}
+
       {images.length > 1 && (
         <div className="flex gap-2 mt-3">
-          {images.map((img) => (
-            <div
-              key={img.id}
-              className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                img.isPrimary ? "border-primary" : "border-border"
-              }`}
-            >
-              <Image
-                src={img.url}
-                alt={img.altText ?? productName}
-                fill
-                className="object-cover"
-                sizes="64px"
-              />
-            </div>
-          ))}
+          {images.map((img) => {
+            const isActive = img.id === activeImage.id
+
+            return (
+              <button
+                key={img.id}
+                type="button"
+                onClick={() => setActiveImageId(img.id)}
+                className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  isActive
+                    ? "border-primary shadow-[0_0_12px_rgba(204,68,68,0.25)]"
+                    : "border-border hover:border-muted-foreground"
+                }`}
+                aria-label={`View ${img.altText ?? productName} image`}
+                aria-pressed={isActive}
+              >
+                <Image
+                  src={img.url}
+                  alt={img.altText ?? productName}
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
+              </button>
+            )
+          })}
         </div>
       )}
     </div>

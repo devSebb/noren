@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { ShoppingBag } from "lucide-react"
 import { toast } from "sonner"
 import { useCart } from "@/lib/hooks/use-cart"
@@ -9,17 +9,21 @@ import type { ProductWithDetails } from "@/lib/types/product"
 
 interface Props {
   product: ProductWithDetails
-  primaryImageUrl: string
+  imageUrl: string
   ctaRef: React.RefObject<HTMLDivElement | null>
+  selectedColor: string
+  selectedColorHex: string
 }
 
-export function StickyCartBar({ product, primaryImageUrl, ctaRef }: Props) {
+export function StickyCartBar({
+  product,
+  imageUrl,
+  ctaRef,
+  selectedColor,
+  selectedColorHex,
+}: Props) {
   const [visible, setVisible] = useState(false)
   const { addItem, openCart } = useCart()
-
-  const primaryVariant = product.variants[0]
-  const color = primaryVariant?.color ?? ""
-  const colorHex = primaryVariant?.colorHex ?? "#888"
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -38,10 +42,10 @@ export function StickyCartBar({ product, primaryImageUrl, ctaRef }: Props) {
       name: product.title,
       price: product.priceCents / 100,
       size: "M",
-      color,
-      colorHex,
+      color: selectedColor,
+      colorHex: selectedColorHex,
       emoji: product.emoji ?? "👕",
-      image: primaryImageUrl,
+      image: imageUrl,
     })
     toast.success(`${product.title} (M) added!`, { icon: product.emoji ?? "👕" })
     openCart()
