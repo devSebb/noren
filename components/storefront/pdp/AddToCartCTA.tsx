@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { ShoppingBag } from "lucide-react"
+import { ShoppingBag, Check } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import { useCart } from "@/lib/hooks/use-cart"
 import { formatCents } from "@/lib/utils/format"
 import { ColorSelector } from "./ColorSelector"
@@ -27,6 +28,7 @@ export function AddToCartCTA({
   onColorChange,
 }: Props) {
   const [selectedSize, setSelectedSize] = useState<PDPSize | null>(null)
+  const [added, setAdded] = useState(false)
   const { addItem, openCart } = useCart()
   const price = product.priceCents / 100
 
@@ -49,6 +51,10 @@ export function AddToCartCTA({
       icon: product.emoji ?? "👕",
     })
 
+    // Brief success state
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1800)
+
     openCart()
   }
 
@@ -61,13 +67,47 @@ export function AddToCartCTA({
       />
       <SizeSelector selectedSize={selectedSize} onSizeChange={setSelectedSize} />
       <FreeShippingProgress />
-      <button
+
+      {/* Add to cart button with success state */}
+      <motion.button
         onClick={handleAdd}
-        className="w-full py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-[0_4px_24px_rgba(204,68,68,0.25)] hover:shadow-[0_4px_32px_rgba(204,68,68,0.4)]"
+        data-cursor="grow"
+        whileTap={{ scale: 0.97 }}
+        className={`w-full py-4 font-bold text-lg rounded-xl transition-all flex items-center justify-center gap-3 relative overflow-hidden ${
+          added
+            ? "bg-[#22c55e] text-white shadow-[0_4px_24px_rgba(34,197,94,0.3)]"
+            : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_4px_24px_rgba(204,68,68,0.25)] hover:shadow-[0_4px_32px_rgba(204,68,68,0.4)]"
+        }`}
       >
-        <ShoppingBag className="w-5 h-5" />
-        ADD TO CART — {formatCents(product.priceCents)}
-      </button>
+        <AnimatePresence mode="wait">
+          {added ? (
+            <motion.span
+              key="added"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-2"
+            >
+              <Check className="w-5 h-5" />
+              ADDED TO CART!
+            </motion.span>
+          ) : (
+            <motion.span
+              key="add"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-3"
+            >
+              <ShoppingBag className="w-5 h-5" />
+              ADD TO CART — {formatCents(product.priceCents)}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </motion.button>
+
       <TrustBadges />
     </div>
   )

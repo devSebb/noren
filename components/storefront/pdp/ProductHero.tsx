@@ -2,11 +2,23 @@
 
 import { useMemo, useRef, useState } from "react"
 import { Star } from "lucide-react"
+import { motion } from "framer-motion"
 import { ImageGallery } from "./ImageGallery"
 import { AddToCartCTA } from "./AddToCartCTA"
 import { StickyCartBar } from "./StickyCartBar"
 import { formatCents, discountPercent } from "@/lib/utils/format"
 import type { ProductWithDetails } from "@/lib/types/product"
+
+const stagger = {
+  container: {
+    hidden: {},
+    show: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+  },
+  item: {
+    hidden: { opacity: 0, y: 22 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+  },
+}
 
 interface Props {
   product: ProductWithDetails
@@ -52,22 +64,34 @@ export function ProductHero({ product }: Props) {
             selectedColor={selectedColor}
           />
 
-          {/* Right: Product info */}
-          <div className="flex flex-col justify-start lg:pt-2">
+          {/* Right: Product info — stagger on mount */}
+          <motion.div
+            className="flex flex-col justify-start lg:pt-2"
+            variants={stagger.container}
+            initial="hidden"
+            animate="show"
+          >
             {/* Category / subtitle */}
             {product.subtitle && (
-              <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-2">
+              <motion.p
+                variants={stagger.item}
+                className="text-xs font-bold tracking-widest text-muted-foreground uppercase mb-2"
+              >
                 {product.subtitle}
-              </p>
+              </motion.p>
             )}
 
             {/* Title */}
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3 leading-tight">
+            <motion.h1
+              variants={stagger.item}
+              className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3 leading-tight"
+            >
               {product.title}
-            </h1>
+            </motion.h1>
 
-            {/* Rating — links to reviews */}
-            <button
+            {/* Rating */}
+            <motion.button
+              variants={stagger.item}
               onClick={() =>
                 document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth" })
               }
@@ -75,19 +99,16 @@ export function ProductHero({ product }: Props) {
             >
               <div className="flex">
                 {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="w-4 h-4 text-accent fill-accent"
-                  />
+                  <Star key={i} className="w-4 h-4 text-accent fill-accent" />
                 ))}
               </div>
               <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
                 4.9 <span className="opacity-60">(2,400+ reviews)</span>
               </span>
-            </button>
+            </motion.button>
 
             {/* Pricing */}
-            <div className="flex items-baseline gap-3 mb-6">
+            <motion.div variants={stagger.item} className="flex items-baseline gap-3 mb-6">
               <span className="text-3xl font-bold">{salePrice}</span>
               {comparePrice && (
                 <span className="text-lg text-muted-foreground line-through">{comparePrice}</span>
@@ -97,16 +118,19 @@ export function ProductHero({ product }: Props) {
                   SAVE {savings}%
                 </span>
               )}
-            </div>
+            </motion.div>
 
             {/* Urgency signal */}
-            <p className="text-xs font-semibold text-[#4ade80] mb-5 flex items-center gap-1.5">
+            <motion.p
+              variants={stagger.item}
+              className="text-xs font-semibold text-[#4ade80] mb-5 flex items-center gap-1.5"
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse inline-block" />
               Selling fast — order soon
-            </p>
+            </motion.p>
 
-            {/* Add to Cart (size, color, progress, button, trust) */}
-            <div ref={ctaRef}>
+            {/* Add to Cart */}
+            <motion.div variants={stagger.item} ref={ctaRef}>
               <AddToCartCTA
                 product={product}
                 imageUrl={selectedImageUrl}
@@ -114,11 +138,11 @@ export function ProductHero({ product }: Props) {
                 selectedColorHex={selectedColorHex}
                 onColorChange={handleColorChange}
               />
-            </div>
+            </motion.div>
 
             {/* Tags */}
             {product.tags && product.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-6">
+              <motion.div variants={stagger.item} className="flex flex-wrap gap-2 mt-6">
                 {product.tags.map((tag) => (
                   <span
                     key={tag}
@@ -127,9 +151,9 @@ export function ProductHero({ product }: Props) {
                     #{tag}
                   </span>
                 ))}
-              </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         </div>
       </div>
 

@@ -1,12 +1,21 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Bricolage_Grotesque } from 'next/font/google'
 import { Providers } from '@/components/layout/Providers'
+import { SmoothScrollProvider } from '@/components/layout/SmoothScrollProvider'
+import { CustomCursor } from '@/components/storefront/CustomCursor'
 import './globals.css'
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
+})
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
 })
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://norenapparel.com"
@@ -48,9 +57,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${bricolage.variable}`}>
       <body className="font-sans antialiased bg-background text-foreground">
-        <Providers>{children}</Providers>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet" />
+        <SmoothScrollProvider>
+          <CustomCursor />
+          <Providers>{children}</Providers>
+        </SmoothScrollProvider>
       </body>
     </html>
   )

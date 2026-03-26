@@ -1,39 +1,228 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useRef } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { toast } from "sonner"
+import { motion, useMotionValue, useSpring, AnimatePresence } from "framer-motion"
+import { useInView } from "framer-motion"
 import { useCart } from "@/lib/hooks/use-cart"
 import { SIZES, type Size } from "@/lib/data/products"
 import type { StoreProduct } from "@/lib/data/products-db"
 import { formatPrice, discountPercent } from "@/lib/utils/format"
+import { MagneticButton } from "@/components/ui/MagneticButton"
 
 interface ProductSectionProps {
   products: StoreProduct[]
 }
 
+// Pre-computed kamon spokes — avoids SSR/client floating-point mismatch
+const KAMON_LINES = [0, 60, 120, 180, 240, 300].map((angle) => {
+  const rad = (angle * Math.PI) / 180
+  return {
+    x1: +(24 + 16 * Math.cos(rad)).toFixed(4),
+    y1: +(24 + 16 * Math.sin(rad)).toFixed(4),
+    x2: +(24 + 22 * Math.cos(rad)).toFixed(4),
+    y2: +(24 + 22 * Math.sin(rad)).toFixed(4),
+    angle,
+  }
+})
+
+function KamonCircle() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" className="opacity-40">
+      <circle cx="24" cy="24" r="22" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="24" cy="24" r="16" stroke="currentColor" strokeWidth="0.75" />
+      {KAMON_LINES.map(({ x1, y1, x2, y2, angle }) => (
+        <line key={angle} x1={x1} y1={y1} x2={x2} y2={y2} stroke="currentColor" strokeWidth="0.75" />
+      ))}
+      <circle cx="24" cy="24" r="3" fill="currentColor" opacity="0.6" />
+    </svg>
+  )
+}
+
+// 3D tilt card wrapper
+function TiltCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const rotateX = useMotionValue(0)
+  const rotateY = useMotionValue(0)
+  const springX = useSpring(rotateX, { stiffness: 200, damping: 25 })
+  const springY = useSpring(rotateY, { stiffness: 200, damping: 25 })
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!ref.current) return
+    const rect = ref.current.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    rotateY.set(((e.clientX - cx) / (rect.width / 2)) * 6)
+    rotateX.set(-((e.clientY - cy) / (rect.height / 2)) * 6)
+  }
+
+  const handleMouseLeave = () => {
+    rotateX.set(0)
+    rotateY.set(0)
+  }
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ rotateX: springX, rotateY: springY, transformPerspective: 800 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+// Individual product card
+function ProductCard({
+  product,
+  index,
+  selectedSize,
+  onSizeSelect,
+  onAddToCart,
+}: {
+  product: StoreProduct
+  index: number
+  selectedSize: Size | undefined
+  onSizeSelect: (size: Size) => void
+  onAddToCart: () => void
+}) {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true, margin: "-80px" })
+  const [hovered, setHovered] = useState(false)
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 60 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.65, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
+    >
+      <TiltCard className="h-full">
+        <Link
+          href={`/products/${product.slug}`}
+          className="group relative bg-card rounded-2xl overflow-hidden block h-full border border-border/50 hover:border-border transition-colors duration-300"
+          data-cursor="text"
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => {
+            setHovered(false)
+          }}
+        >
+          {/* Image */}
+          <div className="relative aspect-square overflow-hidden">
+            <Image
+              src={product.image}
+              alt={product.title}
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-[1.07]"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+
+            {/* Gradient overlay always visible at bottom of image */}
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-card/60 to-transparent" />
+
+            {/* Badge */}
+            <span className={`absolute top-4 left-4 ${product.badgeColor} text-xs font-bold px-3 py-1 rounded-full`}>
+              {product.badge}
+            </span>
+
+            {/* Discount */}
+            <span className="absolute top-4 right-4 bg-background/90 text-[#4ade80] text-xs font-bold px-2.5 py-1 rounded-full">
+              -{discountPercent(product.originalPrice, product.price)}%
+            </span>
+
+            {/* Color swatch */}
+            <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-background/80 backdrop-blur-sm px-2.5 py-1 rounded-full">
+              <span className="w-2.5 h-2.5 rounded-full border border-white/30" style={{ backgroundColor: product.colorHex }} />
+              <span className="text-[10px] font-medium">{product.color}</span>
+            </div>
+
+            {/* Hover overlay — size + add to cart */}
+            <AnimatePresence>
+              {hovered && (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.22 }}
+                  className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/96 to-transparent pt-10 pb-4 px-4"
+                >
+                  {/* Sizes */}
+                  <div className="flex gap-1.5 mb-3">
+                    {SIZES.map((size) => (
+                      <button
+                        key={size}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          onSizeSelect(size)
+                        }}
+                        className={`w-9 h-9 rounded-lg text-xs font-bold transition-all ${
+                          selectedSize === size
+                            ? "bg-primary text-primary-foreground shadow-[0_0_12px_rgba(204,68,68,0.4)]"
+                            : "bg-border/80 text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Add to cart */}
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      onAddToCart()
+                    }}
+                    className="w-full py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold rounded-xl transition-colors tracking-wider"
+                  >
+                    ADD TO CART — {formatPrice(product.price)}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Info */}
+          <div className="p-4">
+            <p className="text-[10px] tracking-[0.2em] text-muted-foreground uppercase mb-1 font-mono">
+              {product.subtitle}
+            </p>
+            <h3 className="text-base font-bold mb-1.5 leading-snug">{product.title}</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold">{formatPrice(product.price)}</span>
+              <span className="text-sm text-muted-foreground line-through">{formatPrice(product.originalPrice)}</span>
+            </div>
+          </div>
+        </Link>
+      </TiltCard>
+    </motion.div>
+  )
+}
+
 export function ProductSection({ products }: ProductSectionProps) {
   const [activeCategory, setActiveCategory] = useState("All Designs")
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [selectedSizes, setSelectedSizes] = useState<Record<string, Size>>({})
   const { addItem, openCart } = useCart()
 
+  const sectionRef = useRef(null)
+
   const categories = useMemo(
-    () => ["All Designs", ...Array.from(new Set(products.map((product) => product.category)))],
+    () => ["All Designs", ...Array.from(new Set(products.map((p) => p.category)))],
     [products]
   )
 
   const filtered =
     activeCategory === "All Designs"
       ? products
-      : products.filter((product) => product.category === activeCategory)
+      : products.filter((p) => p.category === activeCategory)
 
   const handleAddToCart = (productId: string) => {
-    const product = products.find((item) => item.id === productId)
+    const product = products.find((p) => p.id === productId)
     if (!product) return
-
     const size = selectedSizes[productId] ?? "M"
-
     addItem({
       id: String(product.id),
       slug: product.slug,
@@ -45,153 +234,96 @@ export function ProductSection({ products }: ProductSectionProps) {
       emoji: product.emoji,
       image: product.image,
     })
-
-    toast.success(`${product.title} (${size}) added!`, {
-      icon: product.emoji,
+    toast.success(`${product.title} (${size}) added!`, { icon: product.emoji })
+    setSelectedSizes((prev) => {
+      const next = { ...prev }
+      delete next[productId]
+      return next
     })
-
-    setHoveredId(null)
-    setSelectedSizes({})
     openCart()
   }
 
   return (
-    <section id="shop" className="py-20 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Section Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-            The Collection
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Every design tells a story. Every tee is a statement.
+    <section id="shop" className="py-24 px-4" ref={sectionRef}>
+      <div className="max-w-[1400px] mx-auto">
+
+        {/* Section header */}
+        <div className="flex items-end justify-between mb-14 flex-wrap gap-6">
+          <div className="flex items-center gap-5">
+            <div className="text-muted-foreground">
+              <KamonCircle />
+            </div>
+            <div>
+              <p className="text-[10px] font-mono tracking-[0.3em] text-muted-foreground uppercase mb-1">
+                02 — Collection
+              </p>
+              <h2 className="font-display font-extrabold tracking-tight leading-none" style={{ fontSize: "clamp(2.5rem, 6vw, 5rem)" }}>
+                The{" "}
+                <span className="gradient-text">Collection</span>
+              </h2>
+            </div>
+          </div>
+
+          <p className="text-muted-foreground text-sm max-w-xs leading-relaxed hidden md:block">
+            Every design hand-drawn. Every tee garment-dyed. No compromises.
           </p>
         </div>
 
-        {/* Filter Bar */}
-        <div className="flex flex-wrap justify-center gap-2 mb-12">
+        {/* Filter bar with animated pill */}
+        <div className="flex flex-wrap gap-2 mb-12">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                activeCategory === cat
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                  : "bg-card text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
+              data-cursor="grow"
+              className="relative px-5 py-2 rounded-full text-sm font-medium transition-colors duration-200"
+              style={{ color: activeCategory === cat ? "var(--primary-foreground)" : "var(--muted-foreground)" }}
             >
-              {cat}
+              {activeCategory === cat && (
+                <motion.span
+                  layoutId="filter-pill"
+                  className="absolute inset-0 bg-primary rounded-full"
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                />
+              )}
+              <span className="relative z-10">{cat}</span>
             </button>
           ))}
         </div>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((product, index) => (
-            <a
-              key={product.id}
-              href={`/products/${product.slug}`}
-              className="group relative bg-card rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-black/50 block"
-              style={{ animationDelay: `${index * 100}ms` }}
-              onMouseEnter={() => setHoveredId(product.id)}
-              onMouseLeave={() => {
-                setHoveredId(null)
-                setSelectedSizes((prev) => {
-                  const next = { ...prev }
-                  delete next[product.id]
-                  return next
-                })
-              }}
+        {/* Product grid */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+          layout
+        >
+          <AnimatePresence mode="popLayout">
+            {filtered.map((product, index) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                index={index}
+                selectedSize={selectedSizes[product.id]}
+                onSizeSelect={(size) =>
+                  setSelectedSizes((prev) => ({ ...prev, [product.id]: size }))
+                }
+                onAddToCart={() => handleAddToCart(product.id)}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Bottom CTA */}
+        <div className="text-center mt-16">
+          <MagneticButton>
+            <Link
+              href="/products"
+              data-cursor="grow"
+              className="inline-flex items-center gap-3 px-8 py-4 border border-border rounded-xl text-sm font-semibold tracking-wider text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all duration-300"
             >
-              {/* Image Container */}
-              <div className="relative aspect-square overflow-hidden">
-                <Image
-                  src={product.image}
-                  alt={product.title}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-
-                {/* Badge */}
-                <span className={`absolute top-4 left-4 ${product.badgeColor} text-xs font-bold px-3 py-1 rounded-full`}>
-                  {product.badge}
-                </span>
-
-                {/* Discount */}
-                <span className="absolute top-4 right-4 bg-background/90 text-[#4ade80] text-xs font-bold px-3 py-1 rounded-full">
-                  -{discountPercent(product.originalPrice, product.price)}%
-                </span>
-
-                {/* Color Swatch */}
-                <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                  <span
-                    className="w-3 h-3 rounded-full border border-white/30"
-                    style={{ backgroundColor: product.colorHex }}
-                  />
-                  <span className="text-xs font-medium">{product.color}</span>
-                </div>
-
-                {/* Hover Overlay */}
-                {hoveredId === product.id && (
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/95 to-transparent p-4 animate-slide-up">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        {SIZES.map((size) => (
-                          <button
-                            key={size}
-                            onClick={(e) => { e.preventDefault(); setSelectedSizes((prev) => ({ ...prev, [product.id]: size })) }}
-                            className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
-                              selectedSizes[product.id] === size
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-border text-foreground hover:bg-secondary"
-                            }`}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        onClick={(e) => { e.preventDefault(); handleAddToCart(product.id) }}
-                        className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors"
-                      >
-                        ADD TO CART — {formatPrice(product.price)}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Product Info */}
-              <div className="p-5">
-                <p className="text-xs tracking-widest text-muted-foreground uppercase mb-1">
-                  {product.subtitle}
-                </p>
-                <h3 className="text-lg font-bold mb-2">{product.title}</h3>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xl font-bold text-foreground">
-                    {formatPrice(product.price)}
-                  </span>
-                  <span className="text-sm text-muted-foreground line-through">
-                    {formatPrice(product.originalPrice)}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {product.description}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {product.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </a>
-          ))}
+              View All Designs
+              <span className="text-base">↗</span>
+            </Link>
+          </MagneticButton>
         </div>
       </div>
     </section>

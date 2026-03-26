@@ -39,6 +39,8 @@
 @theme inline {
   --font-sans: 'Inter', 'Inter Fallback', sans-serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --font-display: var(--font-display), 'Inter', sans-serif;
+  --font-jp: 'Noto Serif JP', serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -71,7 +73,12 @@
   body {
     @apply bg-background text-foreground;
   }
-  
+
+  /* Hide native cursor on desktop */
+  @media (min-width: 768px) {
+    * { cursor: none !important; }
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
@@ -223,6 +230,56 @@
   }
 }
 
+/* Noise grain overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  opacity: 0.03;
+}
+
+/* Font utilities */
+.font-display {
+  font-family: var(--font-display), 'Inter', sans-serif;
+}
+.font-jp {
+  font-family: var(--font-jp), serif;
+}
+
+/* Animated gradient text (red → gold → red) */
+.gradient-text {
+  background: linear-gradient(90deg, #cc4444 0%, #f0b429 40%, #cc4444 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 3s ease-in-out infinite;
+}
+
+/* Red glow utility */
+.glow-red {
+  box-shadow: 0 0 40px rgba(204, 68, 68, 0.2), 0 0 80px rgba(204, 68, 68, 0.08);
+}
+
+/* Sakura petal fall */
+@keyframes sakura-fall {
+  0% {
+    transform: translateY(-40px) translateX(0px) rotate(0deg);
+    opacity: 0;
+  }
+  10% { opacity: 0.6; }
+  85% { opacity: 0.3; }
+  100% {
+    transform: translateY(110vh) translateX(60px) rotate(540deg);
+    opacity: 0;
+  }
+}
+
 /* Stagger fade in */
 @keyframes stagger-fade {
   from {
@@ -238,3 +295,13 @@
 .animate-stagger-fade {
   animation: stagger-fade 0.5s ease-out forwards;
 }
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+

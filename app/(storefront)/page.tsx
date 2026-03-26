@@ -35,7 +35,7 @@ export default async function HomePage() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
         />
       ))}
-      <HeroBanner />
+      <HeroBanner products={products} />
       <MarqueeStrip />
       <ProductSection products={products} />
       <ReviewsSection />
